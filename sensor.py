@@ -13,7 +13,7 @@ class Sensor(ObservableValue):
         super().__init__(name or str(pin))
         self._pin = ADC(pin)
         if period:
-            timer = Timer(-1).init(period=period, mode=Timer.PERIODIC, callback=self.measure)
+            Timer(period=period, mode=Timer.PERIODIC, callback=self.measure)
     
     def measure(self, time: int):
         self.value = self.transform(self._pin.read_u16())

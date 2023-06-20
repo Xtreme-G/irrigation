@@ -3,6 +3,8 @@ from functools import partial
 
 class ObservableValuePublisher:
     
+    """ MQTT publisher for ObservableValues. """
+    
     def __init__(self,
                  client: MQTTClient,
                  observable: ObservableValue,
@@ -10,8 +12,5 @@ class ObservableValuePublisher:
                  retain: bool=False,
                  qos: int=0) -> None:
         self._topic = f'{base_topic}/{observable.name()}'
-        self._publisher = partial(self.update, client, self._topic, retain=False, qos=qos)
-        observable.subscribe(self.update)
-        
-    def update(self, observable: Observable) -> None:
-        print(self._topic, observable.value)  #self._publisher(observable.value)
+        observable.subscribe(lambda obs: client.publish(self._topic, str(obs.value), retain=retain, qos=qos))
+        observable.subscribe(lambda obs: print(self._topic, obs.value))

@@ -19,13 +19,16 @@ class Irrigation(ObservableValue):
                  sensor: Sensor,
                  pump: Pump,
                  mqtt_client: Optional[MQTTClient]=None,
-                 min_humidity=0.0,
-                 max_humidity=60.0,
-                 pump_duration=2_000,
-                 pump_cooldown=10_000,
-                 pump_cap_time=100_000) -> None:
+                 min_humidity: float=0.0,
+                 max_humidity: float=60.0,
+                 sensor_cooldown_period: int=1_000*15*60,
+                 pump_duration: int=2_000,
+                 pump_cooldown: int=10_000,
+                 pump_cap_time: int=100_000,
+                 pump_cap_pin: Optional[Pin]=None) -> None:
         super().__init__(name)
         self._pump = pump
+        self._pump_counter = ObservableSum(pump)
         self._controller = Controller()
         
         # Water up to max_value, drain until max_max value is reached
@@ -34,9 +37,13 @@ class Irrigation(ObservableValue):
         self._controller.add_criterion(self._watering_criterion)
         self._controller.add_criterion(self._draining_criterion)
         
-        #  Run pump for short spurts with cooldown in between. Cap the total runtime for safety.
+        #  Run pump for short spurts with cooldown in between.
+        #  Cap the total runtime for safety. Reset the cap daily.
+        self._cap = Cap(self._pump_counter, pump_cap_time)
+        self._controller.add_criterion(self._cap)
         self._controller.add_criterion(CooldownCriterion(pump, pump_cooldown))
-        self._controller.add_criterion(Cap(pump, pump_cap_time))
+        if pump_cap_pin:
+            self._cap.subscribe(lambda obs: pump_cap_pin.value(not obs.value))
         
         # Switch between watering/draining states
         self._watering_callback = self._watering  # Micropython does not implement 3.8+ behavior for equality of member functions
@@ -44,12 +51,12 @@ class Irrigation(ObservableValue):
         self._pump_callback = partial(self._start_pump, pump_duration)
               
         if mqtt_client:
-            ObservableValuePublisher(mqtt_client, Cooldown(sensor, 15 * 60 * 1_000), base_topic=name)
-            ObservableValuePublisher(mqtt_client, ObservableSum(pump), base_topic=name)
+            ObservableValuePublisher(mqtt_client, Cooldown(sensor, sensor_cooldown_period), base_topic=name)
+            ObservableValuePublisher(mqtt_client, self._pump_counter, base_topic=name)
             ObservableValuePublisher(mqtt_client, self, base_topic=name)
             
         self._draining(self._controller)  # start in draining state
-        utime.sleep(2)                    # Do not start everything simultaneously
+        utime.sleep_ms(2000)              # Do not start everything simultaneously
 
     def _watering(self, observable) -> None:
         self._watering_criterion.activate()

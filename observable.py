@@ -53,8 +53,14 @@ class ObservableSum(ObservableValue):
     
     def __init__(self, observable: ObservableValue) -> None:
         super().__init__(observable.name())
-        self.value = 0
+        self.reset()
         observable.subscribe(self.update)
+    
+    def name(self) -> str:
+        return f'Sum({super().name()})'
+    
+    def reset(self, time: Optional[int]=None) -> None:
+        self.value = 0   
         
     def update(self, observable: ObservableValue) -> None:
         self.value += observable.value
@@ -70,7 +76,6 @@ class Cooldown(Observable):
         super().__init__(observable.name())
         self._callback = partial(self._start, period)
         self._observable = observable
-        self._timer = Timer(-1)
         
     def subscribe(self, callback) -> None:
         super().subscribe(callback)
@@ -81,10 +86,9 @@ class Cooldown(Observable):
         self._observable.unsubscribe(self._callback)
     
     def _start(self, period: int, observable: Observable) -> None:
+        Timer(-1).init(period=period, mode=Timer.ONE_SHOT, callback=self._stop)
         self._observable.unsubscribe(self._callback)
-        self._timer.init(period=period, mode=Timer.ONE_SHOT, callback=self._stop)
         self.notify(self._observable)
         
     def _stop(self, time: int) -> None:
         self._observable.subscribe(self._callback)
-    
