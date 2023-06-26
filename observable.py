@@ -76,6 +76,7 @@ class Cooldown(Observable):
         super().__init__(observable.name())
         self._callback = partial(self._start, period)
         self._observable = observable
+        self._timer = Timer(-1)
         
     def subscribe(self, callback) -> None:
         super().subscribe(callback)
@@ -83,10 +84,11 @@ class Cooldown(Observable):
     
     def unsubscribe(self, callback) -> None:
         super().unsubscribe(callback)
+        self._timer.deinit()
         self._observable.unsubscribe(self._callback)
     
     def _start(self, period: int, observable: Observable) -> None:
-        Timer(-1).init(period=period, mode=Timer.ONE_SHOT, callback=self._stop)
+        self._timer.init(period=period, mode=Timer.ONE_SHOT, callback=self._stop)
         self._observable.unsubscribe(self._callback)
         self.notify(self._observable)
         

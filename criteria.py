@@ -61,6 +61,7 @@ class SensorCriterion(ObservingObservableValueCriterion):
         self._min_value = min_value if min_value is not None else -float('inf')
         self._max_value = max_value if max_value is not None else  float('inf')
         self._valid_inside_range = valid_inside_range
+        self.value = False
         
     def update(self, sensor: ObservableValue) -> None:
         if self._min_value <= sensor.value <= self._max_value:

@@ -28,7 +28,7 @@ class MoistureSensor(Sensor):
                  pin: Pin,
                  name: Optional[str]=None,
                  period: int=0,
-                 min_reading: int=43578,
+                 min_reading: int=42800,
                  max_reading: int=65535) -> None:
         super().__init__(pin, name, period)
         self._min_reading = min_reading
