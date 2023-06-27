@@ -1,4 +1,5 @@
 from functools import partial
+from observable import Observable
 
 
 class ObservableValuePublisher:
@@ -18,7 +19,7 @@ class ObservableValuePublisher:
         self.activate()
         
     def __del__(self) -> None:
-            self.deactivate()
+        self.deactivate()
         
     def activate(self) -> None:
         self._observable.subscribe(self._publish_callback)
@@ -27,3 +28,30 @@ class ObservableValuePublisher:
     def deactivate(self) -> None:
         self._observable.unsubscribe(self._publish_callback)
         self._observable.unsubscribe(self._print_callback)
+
+
+class Receiver:
+    
+    def __init__(self, client: MQTTClient) -> None:
+        self._client = client
+        self._observables = {}
+        client.set_callback(self.dispatch)
+        
+    def dispatch(self, topic: str, msg: str) -> None:
+        print(f'Received: {topic} {msg}')
+        try:
+            self._observables[topic].notify(msg)
+        except KeyError as e:
+            raise e
+        
+    def subscribe(self, topic: str, callback: Callable) -> None:
+        if not topic in self._observables:
+            self._observables[topic] = Observable()
+            self._client.subscribe(topic)
+        self._observables[topic].subscribe(callback)
+        
+    def unsubscribe(self, topic: str, callback: Callable) -> None:
+        try:
+            self._observables[topic].unsubscribe(callback)
+        except KeyError as e:
+            pass
