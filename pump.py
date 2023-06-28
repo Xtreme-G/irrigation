@@ -14,6 +14,8 @@ class Pump(ObservableValue):
         self.stop()
         
     def start(self, period: int=0) -> None:
+        if self.isrunning():
+            return
         self._pin.off()  # Relay module operates this way.
         self.value = period
         if period:
@@ -22,3 +24,6 @@ class Pump(ObservableValue):
     def stop(self, t: Optional[Timer]=None) -> None:
         self._timer.deinit()
         self._pin.on()  # Relay module operates this way.
+        
+    def isrunning(self) -> bool:
+        return not self._pin.value()
