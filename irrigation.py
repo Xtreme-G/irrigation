@@ -38,12 +38,15 @@ class Irrigation(ObservableValue):
         self._draining_criterion = SensorCriterion(sensor, max_value=min_humidity)
         self._controller.add_criterion(self._watering_criterion)
         self._controller.add_criterion(self._draining_criterion)
+		# Polling criterion for the controller, always valid.
+        self._controller.add_criterion(SensorCriterion(sensor, notify_state_change_only=False))
         
         #  Run pump for short spurts with cooldown in between.
         #  Cap the total runtime for safety. Reset the cap daily.
         self._cap = Cap(self._pump_counter, pump_cap_time)
         self._controller.add_criterion(self._cap)
-        self._controller.add_criterion(CooldownCriterion(pump, pump_cooldown))
+        if pump_cooldown:
+            self._controller.add_criterion(CooldownCriterion(pump, pump_cooldown))
         if pump_cap_pin:
             self._cap.subscribe(lambda obs: pump_cap_pin.value(not obs.value))
         
@@ -58,7 +61,7 @@ class Irrigation(ObservableValue):
         self._sensor_publisher_draining = ObservableValuePublisher(mqtt_client, Cooldown(sensor, sensor_cooldown_period_draining), base_topic=name)
             
         self._draining(self._controller)  # start in draining state
-        utime.sleep_ms(2000)              # Do not start everything simultaneously
+        utime.sleep_ms(1000)              # Do not start everything simultaneously
 
     def name(self) -> str:
         return self._name
@@ -70,7 +73,6 @@ class Irrigation(ObservableValue):
         self._draining_criterion.deactivate()
         self._draining_criterion.unsubscribe(self._watering_callback)
         self._watering_criterion.subscribe(self._draining_callback)
-        self._pump_callback(None)
         self._controller.subscribe(self._pump_callback)
         self.value = 'Watering'
         
