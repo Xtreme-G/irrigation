@@ -18,7 +18,7 @@ class Observable:
         for callback in self._callbacks:
             callback(msg or self)
  
-    def subscribe(self, callback) -> None:
+    def subscribe(self, callback: Callable) -> None:
         if callback not in self._callbacks:
             self._callbacks.append(callback)
  
@@ -92,5 +92,5 @@ class Cooldown(Observable):
         self._observable.unsubscribe(self._callback)
         self.notify(self._observable)
         
-    def _stop(self, time: int) -> None:
+    def _stop(self, t: Timer) -> None:
         self._observable.subscribe(self._callback)
