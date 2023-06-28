@@ -55,12 +55,14 @@ class SensorCriterion(ObservingObservableValueCriterion):
     def __init__(self,
                  sensor: Sensor,
                  valid_inside_range: bool=True,
+                 notify_state_change_only: bool=True,
                  min_value: Optional[float] = None,
                  max_value: Optional[float] = None) -> None:
         super().__init__(sensor, self.update)
         self._min_value = min_value if min_value is not None else -float('inf')
         self._max_value = max_value if max_value is not None else  float('inf')
         self._valid_inside_range = valid_inside_range
+        self._notify_state_change_only = notify_state_change_only
         self.value = False
         
     def update(self, sensor: ObservableValue) -> None:
@@ -68,7 +70,7 @@ class SensorCriterion(ObservingObservableValueCriterion):
             value = self._valid_inside_range
         else:
             value = not self._valid_inside_range
-        if self.value != value:
+        if self.value != value or not self._notify_state_change_only:
             self.value = value
     
     def name(self) -> str:
@@ -114,7 +116,7 @@ class Cap(ObservableValueCriterion):
     def name(self) -> str:
         return f'Cap({super().name()})'
     
-    def reset(self, time: int=0) -> None:
+    def reset(self, time: Optional[Timer]=None) -> None:
         self._observable_sum.reset()
     
     def update(self, observable: ObservableSum) -> None:
