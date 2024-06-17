@@ -9,9 +9,9 @@ class ObservableValuePublisher:
     def __init__(self,
                  client: MQTTClient,
                  observable: ObservableValue,
-                 base_topic: str='',
-                 retain: bool=False,
-                 qos: int=0) -> None:
+                 base_topic: str = '',
+                 retain: bool = False,
+                 qos: int = 0) -> None:
         self._topic = f'{base_topic}/{observable.name()}'
         self._observable = observable
         self._publish_callback = lambda obs: client.publish(self._topic, str(obs.value), retain=retain, qos=qos) if client else lambda obs: None
@@ -45,7 +45,7 @@ class Receiver:
             raise e
         
     def subscribe(self, topic: str, callback: Callable) -> None:
-        if not topic in self._observables:
+        if self._client and topic not in self._observables:
             self._observables[topic] = Observable()
             self._client.subscribe(topic)
         self._observables[topic].subscribe(callback)

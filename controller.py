@@ -1,3 +1,4 @@
+
 from observable import Observable
 
 
@@ -10,8 +11,9 @@ class Controller(Observable):
         self._criteria = []
         self._callback = self.update  # Micropython does not implement 3.8+ behavior for equality of member functions
         
-    def add_criterion(self, criterion: Criterion) -> None:
-        criterion.subscribe(self._callback)
+    def add_criterion(self, criterion: Criterion, subscribe: bool = True) -> None:
+        if subscribe:
+            criterion.subscribe(self._callback)
         self._criteria.append(criterion)  
         
     def remove_criteriea(self, criterion: Criterion) -> None:
@@ -22,6 +24,6 @@ class Controller(Observable):
             pass
         
     def update(self, observable: Observable) -> None:
-        if all([criterion.isvalid() for criterion in self._criteria if criterion.isactive()]):
+        if all([criterion.is_valid() for criterion in self._criteria if criterion.is_active()]):
             self.notify()
     

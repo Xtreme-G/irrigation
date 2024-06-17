@@ -9,7 +9,7 @@ class Sensor(ObservableValue):
     def __init__(self,
                  pin: Pin,
                  name: str,
-                 period: int=0) -> None:
+                 period: int = 0) -> None:
         super().__init__(name or str(pin))
         self._pin = ADC(pin)
         if period:
@@ -26,10 +26,10 @@ class MoistureSensor(Sensor):
     
     def __init__(self,
                  pin: Pin,
-                 name: Optional[str]=None,
-                 period: int=0,
-                 min_reading: int=42800,
-                 max_reading: int=65535) -> None:
+                 name: Optional[str] = None,
+                 period: int = 0,
+                 min_reading: int = 42800,
+                 max_reading: int = 65535) -> None:
         super().__init__(pin, name, period)
         self._min_reading = min_reading
         self._max_reading = max_reading
