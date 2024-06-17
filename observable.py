@@ -5,36 +5,59 @@ from machine import Timer
 class Observable:
     
     """ An Observable can be subscribed to with a callback that is
-        called when notify is called passing along the Observable. """
+        called when notify is called passing along the Observable. 
+        Due to the limited callstack depth in MicroPython (30),
+        deferred Observables will instead store callbacks in a static
+        list for execution at a later stage when appropriate. """   
 
-    def __init__(self, name: Optional[str]=None) -> None:
+    deferred_callbacks = []
+        
+    def __init__(self, name: Optional[str] = None, defer: bool = False) -> None:
         self._name = name
+        self._defer = defer
         self._callbacks = []
- 
+        
     def name(self) -> str:
         return self._name
- 
+
+    def defer_notifications(self, defer: Optional[bool] = None) -> bool:
+        if defer is not None:
+            self._defer = defer
+        return self._defer
+            
     def notify(self, msg=None):
         for callback in self._callbacks:
-            callback(msg or self)
- 
+            if self._defer:
+                Observable.deferred_callbacks.append(partial(callback, msg or self))
+                #print(f'Deferring a callback, now have {len(Observable.deferred_callbacks)} defered!')
+            else:
+                callback(msg or self)
+
     def subscribe(self, callback: Callable) -> None:
         if callback not in self._callbacks:
             self._callbacks.append(callback)
- 
+
     def unsubscribe(self, callback) -> None:
         try:
             self._callbacks.remove(callback)
         except ValueError as e:
             pass
+     
+    @classmethod 
+    def next_callback(cls):
+        if cls.deferred_callbacks:
+            callback = Observable.deferred_callbacks.pop()  # LIFO
+            #print(f'Popped a callback and now have {len(Observable.deferred_callbacks)}')
+            callback()
+        
 
 
 class ObservableValue(Observable):
     
     """ A simple value which setter calls notify. """
     
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
+    def __init__(self, name: str, defer: bool = True) -> None:
+        super().__init__(name, defer)
         self._value = None
 
     @property
@@ -52,14 +75,14 @@ class ObservableSum(ObservableValue):
     """ Sums the values from setter. """
     
     def __init__(self, observable: ObservableValue) -> None:
-        super().__init__(observable.name())
+        super().__init__(observable.name(), observable.defer_notifications())
         self.reset()
         observable.subscribe(self.update)
     
     def name(self) -> str:
         return f'Sum({super().name()})'
     
-    def reset(self, time: Optional[int]=None) -> None:
+    def reset(self, time: Optional[int] = None) -> None:
         self.value = 0   
         
     def update(self, observable: ObservableValue) -> None:
