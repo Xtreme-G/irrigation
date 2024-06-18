@@ -25,6 +25,14 @@ buttons = [Pin(pin, Pin.IN, machine.Pin.PULL_UP) for pin in range(11, 15)]
 sensors = [MoistureSensor(Pin(pin), name='Moisture', period=1_000, **sensor_config) for pin in range(26, 29)]
 
 
+def beep(buzz: Pin, duration: int = 100, times = 1):
+    for i in range(times):
+        buzz.high()
+        utime.sleep_ms(duration)
+        buzz.low()
+        utime.sleep_ms(duration)
+
+
 # Manual pump control
 def start(button, pump, pin) -> None:
     button.irq(trigger=machine.Pin.IRQ_RISING, handler=partial(stop, button, pump))
@@ -42,6 +50,10 @@ def stop(button, pump, pin) -> None:
 for button, pump in zip(buttons, pumps):
     pass
     #button.irq(trigger=machine.Pin.IRQ_FALLING, handler=partial(start, button, pump))
+
+
+beep(buzz, times=1)
+
 
 # WLAN setup
 wlan = network.WLAN(network.STA_IF)
@@ -68,6 +80,7 @@ for i in range(10):
     utime.sleep(1)
     print('Waiting for WLAN connection...')
     if wlan.isconnected():
+        beep(buzz, times=2)
         break
     
 if not wlan.isconnected():
@@ -77,14 +90,17 @@ else:
     print(f'Connected on {ip}')
     status = client.connect()
     print(f'MQTT client connected with status {status}')
-    #client = None
+    if status == 0:
+        beep(buzz, times=3)
+    else:
+        client = None
 
 # Irrigation setup
 irrigations = []
-irrigations.append(Irrigation('Rhubarb', sensors[0], pumps[0], client, **pump_config, **humidity_config, pump_cap_pin=leds[0]))
-irrigations.append(Irrigation('Cucumber', sensors[1], pumps[3], client, **pump_config, **humidity_config, pump_cap_pin=leds[3]))
-irrigations.append(Irrigation('Raspberry', sensors[2], pumps[1], client, **pump_config, **humidity_config, pump_cap_pin=leds[1]))
-irrigations.append(Irrigation('Blackberry', sensors[2], pumps[2], client, **pump_config, **humidity_config, pump_cap_pin=leds[2]))
+irrigations.append(Irrigation('Gurka',    sensors[0], pumps[0], client, **pump_config, **humidity_config, pump_cap_pin=leds[0]))
+irrigations.append(Irrigation('Paprika',  sensors[1], pumps[3], client, **pump_config, **humidity_config, pump_cap_pin=leds[3]))
+irrigations.append(Irrigation('Hallon',   sensors[2], pumps[1], client, **pump_config, **humidity_config, pump_cap_pin=leds[1]))
+irrigations.append(Irrigation('Rabarber', sensors[2], pumps[2], client, **pump_config, **humidity_config, pump_cap_pin=leds[2]))
 
 for irr in irrigations:
     topic = bytes(f'{irr.name()}/Pump', 'utf-8')
