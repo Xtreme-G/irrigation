@@ -35,4 +35,6 @@ class MoistureSensor(Sensor):
         self._max_reading = max_reading
         
     def transform(self, reading: int) -> float:
+        if reading == self._min_reading:
+            return 100.0  # Probably faulty...
         return 100.0 * (self._max_reading - reading) / (self._max_reading - self._min_reading)

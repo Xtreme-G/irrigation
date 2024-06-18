@@ -34,6 +34,7 @@ class Irrigation(ObservableValue):
         self._state_controller = Controller()
         self._pump_controller = Controller()
         self._mqtt_client = mqtt_client
+        sensor._name += f'({self.name()})'
 
         # When watering, wait till max_humidity is reached before stopping.
         self._criterion_when_watering = SensorCriterion(sensor, min_value=max_humidity, valid_inside_range=True)
@@ -87,5 +88,4 @@ class Irrigation(ObservableValue):
         self.value = 'Draining'
 
     def _start_pump(self, period: int = 2_000, observable: Optional[Observable] = None) -> None:
-        print(f'Pumping {self.name()}!')
         self._pump.start(period)
